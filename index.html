@@ -1,283 +1,1080 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <title>نظام تسجيل الدخول - مثال على Firebase</title>
-  <!-- بعض التنسيقات الجمالية -->
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: "Tajawal", sans-serif;
-    }
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>تطبيق قراءة القرآن + تسجيل الدخول</title>
 
-    body {
-      background: linear-gradient(135deg, #ff9e2c, #ffd476);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet" crossorigin="anonymous"/>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <!-- خطوط Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&family=Amiri&display=swap" rel="stylesheet">
 
-    .container {
-      background-color: #ffffffbb;
-      width: 350px;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.1);
-      text-align: center;
-    }
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            direction: rtl;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
 
-    h1 {
-      margin-bottom: 20px;
-      color: #333;
-    }
+        /* تنسيق شريط التصفّح */
+        nav.navbar {
+            background-color: #343a40;
+            border-radius: 15px;
+            margin: 20px auto;
+            max-width: 1400px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        nav.navbar .navbar-brand {
+            font-weight: 600;
+            color: #f8f9fa !important;
+        }
+        nav.navbar .form-control {
+            border-radius: 50px;
+        }
+        .container-fluid {
+            max-width: 1400px;
+        }
 
-    label {
-      display: block;
-      text-align: left;
-      margin: 10px 0 5px 0;
-      color: #555;
-      font-weight: bold;
-    }
+        /* تصميم قائمة السور */
+        .surah-list {
+            max-height: 80vh;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .surah-list li {
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .surah-list li:hover, .surah-list li.active {
+            background: #d4edda;
+        }
 
-    input[type="email"],
-    input[type="password"] {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 16px;
-    }
+        /* تصميم محتوى السورة */
+        .surah-info .card {
+            background: #fff;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .surah-info h2 {
+            color: #007bff;
+            font-weight: 600;
+        }
 
-    button {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      background-color: #f90;
-      border: none;
-      border-radius: 6px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      color: #fff;
-    }
+        .ayah-block {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 15px;
+            position: relative;
+            margin-bottom: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: background 0.3s;
+        }
+        .ayah-text {
+            font-size: 1.1em;
+            font-weight: 400;
+            color: #333;
+            line-height: 2em;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            direction: rtl;
+            font-family: 'Amiri', serif; /* تغيير خط الآيات إلى Amiri */
+        }
+        .ayah-translation {
+            font-size: 1em;
+            font-weight: 400;
+            color: #555;
+            text-align: center;
+            margin-top: 10px;
+            direction: ltr;
+        }
+        .ayah-number {
+            display: inline-block;
+            border-radius: 50%;
+            background: #eee;
+            font-size: 0.9em;
+            width: 1.8em;
+            height: 1.8em;
+            line-height: 1.8em;
+            text-align: center;
+            margin: 0 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        .current-ayah {
+            background-color: #e0f7fa !important;
+        }
 
-    button:hover {
-      background-color: #ff7200;
-    }
+        /* صندوق البحث داخل السورة */
+        .surah-search-box {
+            margin-bottom: 20px;
+            margin-top: 20px;
+        }
+        .search-results {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 15px;
+            margin-top: 10px;
+            padding: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .search-results p {
+            cursor: pointer;
+            margin-bottom: 5px;
+            transition: background 0.3s;
+            border-radius: 5px;
+            padding: 5px;
+        }
+        .search-results p:hover {
+            background: #d4edda;
+        }
 
-    #status, #error {
-      margin-top: 10px;
-      min-height: 20px;
-      font-size: 15px;
-      line-height: 1.4;
-    }
+        /* زر الرجوع للأعلى */
+        #scrollTopBtn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            display: block; /* يكون مرئي دائماً */
+            z-index: 9999;
+            transition: background 0.3s;
+        }
+        #scrollTopBtn:hover {
+            background: #0056b3;
+        }
 
-    #status {
-      color: green;
-    }
+        /* زر تشغيل التمرير التلقائي */
+        #toggleAutoScrollBtn {
+            border-radius: 50px;
+            background: #007bff !important; 
+            color: #fff !important;
+            transition: background 0.3s, color 0.3s;
+            margin-left: 10px; 
+        }
+        #toggleAutoScrollBtn:hover {
+            background: #0056b3 !important;
+            color: #ffffff !important;
+        }
 
-    #error {
-      color: red;
-    }
-  </style>
+        #editionSelect {
+            border-radius: 50px;
+        }
+        .navbar .btn-light {
+            border-radius: 50px;
+        }
+        .card-text strong {
+            color: #343a40;
+        }
+        .d-flex .btn-success {
+            border-radius: 50px;
+        }
+        audio {
+            border-radius: 50px;
+            background: #f8f9fa;
+            display: none !important;
+        }
+        .btn-repeat {
+            border-radius: 50px;
+        }
+        #playButton,
+        #restartButton,
+        #repeatButton {
+            border-radius: 50px !important;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
+        }
+
+        /* زر التشغيل العائم */
+        #floatingPlayToggleBtn {
+            position: fixed;
+            bottom: 80px; 
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #28a745;
+            color: #fff;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            display: none; 
+            z-index: 9999;
+            transition: background 0.3s;
+        }
+        #floatingPlayToggleBtn:hover {
+            background: #218838;
+        }
+        @media (max-width: 576px) {
+            .navbar .mobile-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .navbar .mobile-row > * {
+                margin-bottom: 10px;
+            }
+            #editionSelect {
+                width: 100% !important;
+            }
+        }
+
+        /* تصميم نموذج (تسجيل الدخول/إنشاء الحساب) */
+        #authContainer {
+            width: 100%;
+            max-width: 500px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: none; /* سيظهر فقط إذا لم يكن هناك مستخدم مسجل دخول */
+        }
+        #authContainer h2 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+        #authContainer label {
+            margin-top: 10px;
+            font-weight: 600;
+        }
+        #authContainer input[type="email"],
+        #authContainer input[type="password"] {
+            border-radius: 50px;
+        }
+        #authContainer button {
+            border-radius: 50px;
+        }
+        #authContainer .toggle-link {
+            text-decoration: underline;
+            color: #007bff;
+            cursor: pointer;
+        }
+        #authContainer .toggle-link:hover {
+            color: #0056b3;
+        }
+        #authContainer .alert {
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>نظام الدخول - Firebase</h1>
 
-    <label for="email">البريد الإلكتروني:</label>
-    <input type="email" id="email" placeholder="أدخل بريدك الإلكتروني">
+<!-- شريط التصفّح (سيتم إخفاءه إذا لم يكن المستخدم مسجلاً للدخول) -->
+<nav class="navbar navbar-dark mx-auto" id="navbarQuran" style="display: none;">
+    <div class="container-fluid d-flex flex-wrap align-items-center justify-content-between mobile-row">
+        <a class="navbar-brand" href="#"><i class="bi bi-book"></i> تطبيق قرآني</a>
+        <div class="d-flex align-items-center gap-2">
+            <label for="editionSelect" class="text-white mb-0">إصدار صوتي:</label>
+            <select id="editionSelect" class="form-select form-select-sm" style="width:200px;">
+                <option value="">جاري التحميل...</option>
+            </select>
 
-    <label for="password">كلمة المرور:</label>
-    <input type="password" id="password" placeholder="أدخل كلمة المرور">
+            <!-- زر تسجيل الخروج -->
+            <button id="logoutBtn" class="btn btn-light btn-sm"><i class="bi bi-box-arrow-left"></i> تسجيل الخروج</button>
+        </div>
+    </div>
+</nav>
 
-    <button id="signupBtn">إنشاء حساب</button>
-    <button id="loginBtn">تسجيل الدخول</button>
-    <button id="logoutBtn">تسجيل الخروج</button>
+<!-- واجهة تسجيل الدخول/إنشاء الحساب -->
+<div id="authContainer">
+    <h2 id="authTitle">تسجيل الدخول</h2>
 
-    <div id="status"></div>
-    <div id="error"></div>
-  </div>
+    <!-- نموذج تسجيل الدخول -->
+    <div id="loginForm">
+        <label for="loginEmail">البريد الإلكتروني:</label>
+        <input type="email" id="loginEmail" class="form-control" placeholder="example@mail.com">
 
-  <!-- استيراد Firebase من CDN (روابط الإصدار 9 فما فوق) -->
-  <script type="module">
-    import { 
-      initializeApp 
-    } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        <label for="loginPassword">كلمة المرور:</label>
+        <input type="password" id="loginPassword" class="form-control" placeholder="كلمة المرور">
 
-    import {
-      getAuth,
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword,
-      signOut,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        <button id="loginBtn" class="btn btn-primary w-100 mt-3">تسجيل الدخول</button>
+        <p class="mt-3 text-center">ليس لديك حساب؟ 
+            <span class="toggle-link" id="goToSignUp">إنشاء حساب</span>
+        </p>
+        <div class="alert alert-danger d-none" id="loginError"></div>
+    </div>
 
-    import {
-      getDatabase,
-      ref,
-      set,
-      get,
-      update
-    } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+    <!-- نموذج إنشاء الحساب -->
+    <div id="signupForm" style="display: none;">
+        <label for="signupEmail">البريد الإلكتروني:</label>
+        <input type="email" id="signupEmail" class="form-control" placeholder="example@mail.com">
 
-    /**** 1) معلومات مشروع Firebase الخاصة بك ****/
-    const firebaseConfig = {
-      apiKey: "AIzaSyAAp1KkuFVqB5D8v_m4dJ4snEbCTjv7R8U",
-      authDomain: "sums-site.firebaseapp.com",
-      databaseURL: "https://sums-site-default-rtdb.firebaseio.com",
-      projectId: "sums-site",
-      storageBucket: "sums-site.firebasestorage.app",
-      messagingSenderId: "154631517392",
-      appId: "1:154631517392:web:185e081d1ee6e722451ad5"
-    };
+        <label for="signupPassword">كلمة المرور:</label>
+        <input type="password" id="signupPassword" class="form-control" placeholder="كلمة المرور">
 
-    /**** 2) تهيئة Firebase ****/
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
+        <button id="signupBtn" class="btn btn-success w-100 mt-3">إنشاء حساب</button>
+        <p class="mt-3 text-center">لديك حساب بالفعل؟
+            <span class="toggle-link" id="goToLogin">تسجيل الدخول</span>
+        </p>
+        <div class="alert alert-danger d-none" id="signupError"></div>
+        <div class="alert alert-success d-none" id="signupSuccess"></div>
+    </div>
+</div>
 
-    /**** 3) المراجع إلى عناصر الصفحة ****/
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
-    const signupBtn = document.getElementById("signupBtn");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
+<!-- محتوى الصفحة (القرآن) -->
+<div class="container-fluid mt-3 mb-5" id="quranApp" style="display: none;">
+    <div class="row">
+        <div class="col-12 col-md-3 col-lg-2 mb-3">
+            <div class="surah-search-box">
+                <input type="text" id="searchSurah" class="form-control" placeholder="بحث عن سورة...">
+            </div>
+            <ul class="list-group surah-list" id="surahList">
+                <li class="list-group-item">جاري التحميل...</li>
+            </ul>
+        </div>
+        
+        <div class="col-12 col-md-9 col-lg-10">
+            <div id="surahContainer" class="surah-info"></div>
+        </div>
+    </div>
+</div>
 
-    const statusDiv = document.getElementById("status");
-    const errorDiv = document.getElementById("error");
+<!-- أزرار خارج محتوى السورة -->
+<button id="scrollTopBtn"><i class="bi bi-arrow-up"></i></button>
+<button id="floatingPlayToggleBtn"><i class="bi bi-play-circle"></i></button>
 
-    /**** 4) دوال مساعدة لعرض الرسائل ****/
-    function showStatus(message) {
-      statusDiv.textContent = message;
-    }
+<!-- أكواد Firebase + التطبيق -->
+<script type="module">
+/* استيراد Firebase من CDN */
+import { 
+  initializeApp 
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 
-    function showError(message) {
-      errorDiv.textContent = message;
-    }
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 
-    /**** 5) دالة لإنشاء حساب جديد ****/
-    async function signUp() {
-      const email = emailInput.value.trim();
-      const password = passwordInput.value.trim();
+import {
+  getDatabase,
+  ref,
+  set,
+  get,
+  update
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
-      // تفريغ رسائل الحالة أو الخطأ
-      showStatus("");
-      showError("");
+/**** 1) معلومات مشروع Firebase الخاصة بك ****/
+const firebaseConfig = {
+  apiKey: "AIzaSyAAp1KkuFVqB5D8v_m4dJ4snEbCTjv7R8U",
+  authDomain: "sums-site.firebaseapp.com",
+  databaseURL: "https://sums-site-default-rtdb.firebaseio.com",
+  projectId: "sums-site",
+  storageBucket: "sums-site.firebasestorage.app",
+  messagingSenderId: "154631517392",
+  appId: "1:154631517392:web:185e081d1ee6e722451ad5"
+};
 
-      if (!email || !password) {
-        showError("يرجى إدخال البريد الإلكتروني وكلمة المرور.");
-        return;
+/**** 2) تهيئة Firebase ****/
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+/**** عناصر واجهة تسجيل الدخول/إنشاء الحساب ****/
+const authContainer = document.getElementById("authContainer");
+const loginForm = document.getElementById("loginForm");
+const signupForm = document.getElementById("signupForm");
+const authTitle = document.getElementById("authTitle");
+
+// حقول تسجيل الدخول
+const loginEmail = document.getElementById("loginEmail");
+const loginPassword = document.getElementById("loginPassword");
+const loginBtn = document.getElementById("loginBtn");
+const loginError = document.getElementById("loginError");
+
+// حقول إنشاء حساب
+const signupEmail = document.getElementById("signupEmail");
+const signupPassword = document.getElementById("signupPassword");
+const signupBtnElm = document.getElementById("signupBtn");
+const signupError = document.getElementById("signupError");
+const signupSuccess = document.getElementById("signupSuccess");
+
+// روابط التبديل بين تسجيل الدخول وإنشاء الحساب
+const goToSignUp = document.getElementById("goToSignUp");
+const goToLogin = document.getElementById("goToLogin");
+
+/**** عناصر واجهة القرآن ****/
+const navbarQuran = document.getElementById("navbarQuran");
+const quranApp = document.getElementById("quranApp");
+const logoutBtn = document.getElementById("logoutBtn");
+
+/**** إظهار وإخفاء نوافذ الواجهة حسب حالة المستخدم ****/
+function showAuthUI() {
+  authContainer.style.display = "block";
+  navbarQuran.style.display = "none";
+  quranApp.style.display = "none";
+}
+function showQuranUI() {
+  authContainer.style.display = "none";
+  navbarQuran.style.display = "flex";
+  quranApp.style.display = "block";
+}
+
+/**** دوال مساعدة لعرض وإخفاء الأخطاء ****/
+function showError(element, message) {
+  element.textContent = message;
+  element.classList.remove("d-none");
+}
+function hideError(element) {
+  element.textContent = "";
+  element.classList.add("d-none");
+}
+function showSuccess(element, message) {
+  element.textContent = message;
+  element.classList.remove("d-none");
+}
+function hideSuccess(element) {
+  element.textContent = "";
+  element.classList.add("d-none");
+}
+
+/**** دالة لإنشاء حساب جديد ****/
+async function signUp() {
+  hideError(signupError);
+  hideSuccess(signupSuccess);
+
+  const email = signupEmail.value.trim();
+  const password = signupPassword.value.trim();
+  if (!email || !password) {
+    showError(signupError, "يرجى إدخال البريد الإلكتروني وكلمة المرور.");
+    return;
+  }
+
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    // حفظ حالة loggedIn في قاعدة البيانات
+    const userRef = ref(db, `users/${user.uid}`);
+    await set(userRef, {
+      loggedIn: false,
+      email: user.email
+    });
+    showSuccess(signupSuccess, "تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.");
+    signupEmail.value = "";
+    signupPassword.value = "";
+  } catch (error) {
+    showError(signupError, error.message);
+  }
+}
+
+/**** دالة لتسجيل الدخول مع منع تعدد الجلسات ****/
+async function logIn() {
+  hideError(loginError);
+
+  const email = loginEmail.value.trim();
+  const password = loginPassword.value.trim();
+
+  if (!email || !password) {
+    showError(loginError, "يرجى إدخال البريد الإلكتروني وكلمة المرور.");
+    return;
+  }
+
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    const userRef = ref(db, `users/${user.uid}`);
+    const snapshot = await get(userRef);
+    if (snapshot.exists()) {
+      const userData = snapshot.val();
+      if (userData.loggedIn === true) {
+        // المستخدم مسجل دخول على جهاز آخر
+        await signOut(auth);
+        showError(loginError, "هذا الحساب مفتوح بجهاز آخر. يجب تسجيل الخروج هناك أولاً.");
+      } else {
+        await update(userRef, { loggedIn: true });
       }
-
-      try {
-        // إنشاء حساب جديد في Firebase Auth
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        // عند الإنشاء الناجح، قم بحفظ حالة "loggedIn" في Realtime Database على false
-        const userRef = ref(db, `users/${user.uid}`);
-        await set(userRef, {
-          loggedIn: false,
-          email: user.email
-        });
-
-        showStatus("تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.");
-      } catch (error) {
-        showError(`فشل إنشاء الحساب: ${error.message}`);
-      }
+    } else {
+      // إذا لم توجد بيانات للمستخدم (حالة نادرة)
+      showError(loginError, "حدث خطأ في بيانات المستخدم. حاول مرة أخرى.");
     }
+  } catch (error) {
+    showError(loginError, error.message);
+  }
+}
 
-    /**** 6) دالة لتسجيل الدخول مع التحقق من عدم تسجيل الدخول على جهاز آخر ****/
-    async function logIn() {
-      const email = emailInput.value.trim();
-      const password = passwordInput.value.trim();
+/**** دالة لتسجيل الخروج ****/
+async function logOut() {
+  if (auth.currentUser) {
+    const user = auth.currentUser;
+    const userRef = ref(db, `users/${user.uid}`);
+    try {
+      await update(userRef, { loggedIn: false });
+      await signOut(auth);
+    } catch (error) {
+      console.error("فشل تسجيل الخروج:", error.message);
+    }
+  }
+}
 
-      // تفريغ رسائل الحالة أو الخطأ
-      showStatus("");
-      showError("");
+/**** تبديل بين فورم تسجيل الدخول وفورم الإنشاء ****/
+goToSignUp.addEventListener("click", () => {
+  loginForm.style.display = "none";
+  signupForm.style.display = "block";
+  authTitle.textContent = "إنشاء حساب";
+  hideError(loginError);
+});
+goToLogin.addEventListener("click", () => {
+  signupForm.style.display = "none";
+  loginForm.style.display = "block";
+  authTitle.textContent = "تسجيل الدخول";
+  hideError(signupError);
+  hideSuccess(signupSuccess);
+});
 
-      if (!email || !password) {
-        showError("يرجى إدخال البريد الإلكتروني وكلمة المرور.");
-        return;
-      }
+/**** ربط الأزرار بالدوال ****/
+signupBtnElm.addEventListener("click", signUp);
+loginBtn.addEventListener("click", logIn);
+logoutBtn.addEventListener("click", logOut);
 
-      try {
-        // تسجيل الدخول عبر Firebase Auth
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        const userRef = ref(db, `users/${user.uid}`);
+/**** الاستماع لحالة المستخدم في Auth ****/
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // يوجد مستخدم مسجل دخول
+    showQuranUI();
+  } else {
+    // لا يوجد مستخدم مسجل دخول
+    showAuthUI();
+  }
+});
 
-        // جلب بيانات المستخدم من Realtime Database
-        const snapshot = await get(userRef);
 
-        if (snapshot.exists()) {
-          const userData = snapshot.val();
+/*************************************************************************/
+/*           الجزء الخاص بعرض القرآن الكريم وتشغيل السور بالصوت           */
+/*************************************************************************/
 
-          // إذا كان المستخدم مسجلاً للدخول (loggedIn = true) بالفعل في قاعدة البيانات،
-          // فهذا يعني أنه يحاول تسجيل الدخول من جهاز آخر
-          if (userData.loggedIn === true) {
-            // تسجيل الخروج مباشرة
-            await signOut(auth);
-            showError("لا يمكنك تسجيل الدخول من جهاز آخر ما لم تقم بتسجيل الخروج أولاً.");
-          } else {
-            // إذا لم يكن مسجلاً للدخول، نحدّث الحالة إلى true
-            await update(userRef, { loggedIn: true });
-            showStatus("تم تسجيل الدخول بنجاح!");
-          }
+/**** المعرفات من واجهة القرآن ****/
+const surahListEl = document.getElementById("surahList");
+const surahContainer = document.getElementById("surahContainer");
+const editionSelect = document.getElementById("editionSelect");
+const searchSurah = document.getElementById("searchSurah");
+const scrollTopBtn = document.getElementById("scrollTopBtn");
+const floatingPlayToggleBtn = document.getElementById("floatingPlayToggleBtn");
+
+let surahsData = [];
+let currentlyDisplayedSurahs = [];
+let currentSurahNo = null;
+let currentAyahIndex = 0;
+let autoScroll = true;
+
+let currentArabicData = null;
+let currentEnglishData = null;
+let currentAudioData = null;
+
+let audioPlayer = null;
+let playButton = null;
+let repeatButton = null;
+let repeatAll = false;
+let toggleAutoScrollBtn = null;
+
+let lastAyahIndex = 0; 
+let scrollState = 0; 
+let isPlaying = false; 
+
+// دالة إزالة التشكيل لتسهيل البحث
+function removeDiacritics(str) {
+    return str
+        .replace(/[أإآٱ]/g, 'ا') // تحويل الألف المتغيرة إلى الألف العادية
+        .normalize('NFD')
+        .replace(/[\u0617-\u061A\u064B-\u0652\u06D6-\u06ED\uFE00-\uFE0F]/g, '')
+        .replace(/[\u0640]/g, '');
+}
+
+const apiBaseUrl = "https://api.alquran.cloud/v1";
+
+fetch(`${apiBaseUrl}/surah`)
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === "OK") {
+            surahsData = data.data; 
+            currentlyDisplayedSurahs = surahsData;
+            renderSurahList(currentlyDisplayedSurahs);
         } else {
-          // في حال لم توجد بيانات للمستخدم
-          showError("حدث خطأ في بيانات المستخدم. حاول مرة أخرى.");
+            surahListEl.innerHTML = "<li class='list-group-item'>حدث خطأ في تحميل السور</li>";
         }
-      } catch (error) {
-        showError(`فشل تسجيل الدخول: ${error.message}`);
-      }
-    }
-
-    /**** 7) دالة لتسجيل الخروج ****/
-    async function logOut() {
-      showStatus("");
-      showError("");
-
-      if (auth.currentUser) {
-        const user = auth.currentUser;
-        const userRef = ref(db, `users/${user.uid}`);
-
-        try {
-          // نحدّث حالة المستخدم في قاعدة البيانات إلى false
-          await update(userRef, { loggedIn: false });
-
-          // ثم تسجيل الخروج من Firebase Auth
-          await signOut(auth);
-          showStatus("تم تسجيل الخروج بنجاح!");
-        } catch (error) {
-          showError(`فشل تسجيل الخروج: ${error.message}`);
-        }
-      } else {
-        showError("لا يوجد مستخدم مسجل الدخول حالياً.");
-      }
-    }
-
-    /**** 8) الاستماع لتغير حالة المصادقة (Auth State) ****/
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // يوجد مستخدم مسجل دخول
-        showStatus(`مستخدم حالياً: ${user.email}`);
-      } else {
-        // لا يوجد مستخدم مسجل الدخول
-        showStatus("لا يوجد مستخدم مسجل الدخول حالياً.");
-      }
+    })
+    .catch(err => {
+        console.error("Error fetching surahs:", err);
+        surahListEl.innerHTML = "<li class='list-group-item'>حدث خطأ في تحميل السور</li>";
     });
 
-    /**** 9) ربط الأزرار بالدوال ****/
-    signupBtn.addEventListener("click", signUp);
-    loginBtn.addEventListener("click", logIn);
-    logoutBtn.addEventListener("click", logOut);
-  </script>
+fetch(`${apiBaseUrl}/edition?format=audio&type=versebyverse&language=ar`)
+    .then(res => res.json())
+    .then(data => {
+        editionSelect.innerHTML = '<option value="">اختر إصدارا صوتيا</option>';
+        if(data.status === "OK") {
+            data.data.forEach(edition => {
+                const opt = document.createElement("option");
+                opt.value = edition.identifier;
+                opt.textContent = `${edition.englishName} (${edition.name})`;
+                editionSelect.appendChild(opt);
+            });
+        } else {
+            editionSelect.innerHTML = '<option value="">لا توجد إصدارات</option>';
+        }
+    })
+    .catch(err => {
+        console.error("Error fetching editions:", err);
+        editionSelect.innerHTML = '<option value="">حدث خطأ</option>';
+    });
+
+function renderSurahList(surahs) {
+    surahListEl.innerHTML = "";
+    if(surahs.length === 0) {
+        surahListEl.innerHTML = "<li class='list-group-item'>لا توجد نتائج</li>";
+        return;
+    }
+    surahs.forEach((surah) => {
+        const li = document.createElement("li");
+        li.classList.add("list-group-item");
+        li.textContent = `${surah.number}. ${surah.englishName} - ${surah.name}`;
+        li.dataset.surahNo = surah.number;
+        li.addEventListener("click", () => loadSurahData(surah.number, li));
+        surahListEl.appendChild(li);
+    });
+}
+
+searchSurah.addEventListener("input", () => {
+    const searchTerm = removeDiacritics(searchSurah.value.toLowerCase().trim());
+    currentlyDisplayedSurahs = surahsData.filter(s =>
+        removeDiacritics(s.englishName.toLowerCase()).includes(searchTerm) ||
+        removeDiacritics(s.name).includes(searchTerm) ||
+        (s.englishNameTranslation && removeDiacritics(s.englishNameTranslation.toLowerCase()).includes(searchTerm))
+    );
+    renderSurahList(currentlyDisplayedSurahs);
+});
+
+function loadSurahData(surahNo, clickedElement) {
+    document.querySelectorAll(".surah-list li").forEach(li => li.classList.remove("active"));
+    if(clickedElement) clickedElement.classList.add("active");
+
+    Promise.all([
+        fetch(`${apiBaseUrl}/surah/${surahNo}/quran-uthmani`).then(r=>r.json()),
+        fetch(`${apiBaseUrl}/surah/${surahNo}/en.asad`).then(r=>r.json())
+    ]).then(([arabicData, englishData]) => {
+        if(arabicData.status === "OK" && englishData.status === "OK") {
+            currentSurahNo = surahNo;
+            currentArabicData = arabicData.data;
+            currentEnglishData = englishData.data;
+            currentAyahIndex = 0;
+            
+            const audioEdition = editionSelect.value;
+            if(audioEdition) {
+                return fetch(`${apiBaseUrl}/surah/${surahNo}/${audioEdition}`).then(r=>r.json()).then(audioData=>{
+                    if(audioData.status === "OK") {
+                        currentAudioData = audioData.data;
+                    } else {
+                        currentAudioData = null;
+                    }
+                    renderSurah();
+                });
+            } else {
+                currentAudioData = null;
+                renderSurah();
+            }
+        } else {
+            surahContainer.innerHTML = "<div class='alert alert-danger'>حدث خطأ في تحميل بيانات السورة</div>";
+        }
+    }).catch(err => {
+        console.error("Error fetching surah data:", err);
+        surahContainer.innerHTML = "<div class='alert alert-danger'>حدث خطأ في تحميل بيانات السورة</div>";
+    });
+}
+
+editionSelect.addEventListener("change", () => {
+    if(currentSurahNo) {
+        const selectedSurahLi = document.querySelector(`.surah-list li[data-surah-no='${currentSurahNo}']`);
+        loadSurahData(currentSurahNo, selectedSurahLi);
+    }
+});
+
+function renderSurah() {
+    const surahInfo = currentArabicData;
+
+    surahContainer.innerHTML = `
+        <div class="card mb-3 p-3">
+            <div class="card-body">
+                <h2 class="card-title"><i class="bi bi-bookmark-star-fill"></i> ${surahInfo.name}</h2>
+                <p class="card-text">
+                    <strong>${surahInfo.englishName} (${surahInfo.englishNameTranslation || ""})</strong><br/>
+                    مكان النزول: ${surahInfo.revelationType}<br/>
+                    عدد الآيات: ${surahInfo.numberOfAyahs}<br/>
+                    رقم السورة: ${surahInfo.number}
+                </p>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button id="playButton" class="btn btn-success btn-sm">
+                        <i class="bi bi-play-circle"></i> تشغيل السورة
+                    </button>
+                    <button id="restartButton" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-arrow-counterclockwise"></i> إعادة السورة
+                    </button>
+                    <button id="repeatButton" class="btn btn-warning btn-sm btn-repeat">
+                        <i class="bi bi-arrow-repeat"></i> تكرار
+                    </button>
+                    <button id="toggleAutoScrollBtn" class="btn btn-sm">
+                        <i class="bi bi-arrows-move"></i> إيقاف التمرير التلقائي
+                    </button>
+                    <audio id="audioPlayer" controls class="flex-grow-1" preload="auto"></audio>
+                </div>
+            </div>
+        </div>
+
+        <div class="surah-search-box">
+            <input type="text" id="ayahSearch" class="form-control" placeholder="ابحث داخل هذه السورة...">
+            <div id="searchResults" class="search-results d-none"></div>
+        </div>
+    `;
+
+    toggleAutoScrollBtn = document.getElementById("toggleAutoScrollBtn");
+    if (toggleAutoScrollBtn) {
+        toggleAutoScrollBtn.style.display = 'inline-block';
+        toggleAutoScrollBtn.addEventListener("click", () => {
+            autoScroll = !autoScroll;
+            toggleAutoScrollBtn.textContent = autoScroll ? "إيقاف التمرير التلقائي" : "تشغيل التمرير التلقائي";
+        });
+    }
+
+    audioPlayer = document.getElementById("audioPlayer");
+    playButton = document.getElementById("playButton");
+    repeatButton = document.getElementById("repeatButton");
+    const restartButton = document.getElementById("restartButton");
+
+    if(playButton) {
+        playButton.addEventListener("click", togglePlayPause);
+    }
+    if(repeatButton) {
+        repeatButton.addEventListener("click", () => {
+            repeatAll = !repeatAll;
+            repeatButton.classList.toggle('btn-warning', !repeatAll);
+            repeatButton.classList.toggle('btn-primary', repeatAll);
+        });
+    }
+    if(restartButton) {
+        restartButton.addEventListener("click", () => {
+            if(!currentAudioData) return;
+            currentAyahIndex = 0;
+            audioPlayer.pause();
+            playCurrentAyah();
+            isPlaying = true;
+            updatePlayButton();
+        });
+    }
+
+    const arabicAyahs = currentArabicData.ayahs;
+    const englishAyahs = currentEnglishData.ayahs;
+    let audioAyahs = currentAudioData ? currentAudioData.ayahs : null;
+
+    const firstAyahText = arabicAyahs.length > 0 ? arabicAyahs[0].text.trim() : "";
+    const basmalaPattern = /^بِسْمِ\s*ٱللَّهِ\s*ٱلرَّحْمَٰنِ\s*ٱلرَّحِيمِ/;
+    let foundBasmala = false;
+
+    if (basmalaPattern.test(firstAyahText)) {
+        foundBasmala = true;
+        if (currentSurahNo === 1) {
+            // سورة الفاتحة
+            const ayahDiv = document.createElement("div");
+            ayahDiv.classList.add("ayah-block");
+            ayahDiv.setAttribute("data-ayah-index", 0);
+            const englishText = englishAyahs[0] ? englishAyahs[0].text : "";
+            ayahDiv.innerHTML = `
+                <p class="ayah-text">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ <span class="ayah-number">1</span></p>
+                <p class="ayah-translation">${englishText}</p>
+            `;
+            if(audioAyahs) {
+                ayahDiv.addEventListener("dblclick", () => {
+                    currentAyahIndex = 0;
+                    playCurrentAyah();
+                });
+            }
+            surahContainer.appendChild(ayahDiv);
+
+            for (let i = 1; i < arabicAyahs.length; i++) {
+                const ayah = arabicAyahs[i];
+                const ayahNum = i + 1; 
+                const enText = englishAyahs[i] ? englishAyahs[i].text : "";
+                const ayahDiv2 = document.createElement("div");
+                ayahDiv2.classList.add("ayah-block");
+                ayahDiv2.setAttribute("data-ayah-index", i);
+                ayahDiv2.innerHTML = `
+                    <p class="ayah-text">${ayah.text.trim()} <span class="ayah-number">${ayahNum}</span></p>
+                    <p class="ayah-translation">${enText}</p>
+                `;
+                if(audioAyahs) {
+                    ayahDiv2.addEventListener("dblclick", () => {
+                        currentAyahIndex = i;
+                        playCurrentAyah();
+                    });
+                }
+                surahContainer.appendChild(ayahDiv2);
+            }
+        } else {
+            // باقي السور إذا كانت تبدأ بالبسملة
+            const basmalaBlock = document.createElement("div");
+            basmalaBlock.classList.add("ayah-block");
+            basmalaBlock.innerHTML = `<p class="ayah-text">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</p>`;
+            surahContainer.appendChild(basmalaBlock);
+
+            const cleanedFirstAyah = firstAyahText.replace(basmalaPattern, "").trim();
+            if(cleanedFirstAyah) {
+                const englishText = englishAyahs[0] ? englishAyahs[0].text : "";
+                const ayahDiv = document.createElement("div");
+                ayahDiv.classList.add("ayah-block");
+                ayahDiv.setAttribute("data-ayah-index", 0);
+                ayahDiv.innerHTML = `
+                    <p class="ayah-text">${cleanedFirstAyah} <span class="ayah-number">1</span></p>
+                    <p class="ayah-translation">${englishText}</p>
+                `;
+                if(audioAyahs) {
+                    ayahDiv.addEventListener("dblclick", () => {
+                        currentAyahIndex = 0;
+                        playCurrentAyah();
+                    });
+                }
+                surahContainer.appendChild(ayahDiv);
+            }
+            for (let i = 1; i < arabicAyahs.length; i++) {
+                const ayah = arabicAyahs[i];
+                const ayahNum = i + 1;
+                const englishText = englishAyahs[i] ? englishAyahs[i].text : "";
+                const ayahDiv = document.createElement("div");
+                ayahDiv.classList.add("ayah-block");
+                ayahDiv.setAttribute("data-ayah-index", i);
+                ayahDiv.innerHTML = `
+                    <p class="ayah-text">${ayah.text.trim()} <span class="ayah-number">${ayahNum}</span></p>
+                    <p class="ayah-translation">${englishText}</p>
+                `;
+                if(audioAyahs) {
+                    ayahDiv.addEventListener("dblclick", () => {
+                        currentAyahIndex = i;
+                        playCurrentAyah();
+                    });
+                }
+                surahContainer.appendChild(ayahDiv);
+            }
+        }
+    } else {
+        // سورة لا تبدأ بالبسملة
+        for (let i = 0; i < arabicAyahs.length; i++) {
+            const ayah = arabicAyahs[i];
+            const ayahNum = i + 1;
+            const englishText = englishAyahs[i] ? englishAyahs[i].text : "";
+            const ayahDiv = document.createElement("div");
+            ayahDiv.classList.add("ayah-block");
+            ayahDiv.setAttribute("data-ayah-index", i);
+            ayahDiv.innerHTML = `
+                <p class="ayah-text">${ayah.text.trim()} <span class="ayah-number">${ayahNum}</span></p>
+                <p class="ayah-translation">${englishText}</p>
+            `;
+            if(audioAyahs) {
+                ayahDiv.addEventListener("dblclick", () => {
+                    currentAyahIndex = i;
+                    playCurrentAyah();
+                });
+            }
+            surahContainer.appendChild(ayahDiv);
+        }
+    }
+
+    highlightCurrentAyah();
+    setupSurahSearch();
+
+    if(audioAyahs && audioPlayer) {
+        audioPlayer.addEventListener('ended', playNextAyah);
+    }
+}
+
+function playCurrentAyah() {
+    if(!currentAudioData) return;
+    const ayahAudio = currentAudioData.ayahs[currentAyahIndex].audio;
+    audioPlayer.src = ayahAudio;
+    audioPlayer.load();
+    audioPlayer.play();
+    highlightCurrentAyah();
+}
+
+function playNextAyah() {
+    currentAyahIndex++;
+    if(currentAudioData && currentAyahIndex < currentAudioData.ayahs.length) {
+        playCurrentAyah();
+    } else {
+        if (repeatAll && currentAudioData) {
+            currentAyahIndex = 0;
+            playCurrentAyah();
+        } else {
+            isPlaying = false;
+            updatePlayButton();
+        }
+    }
+}
+
+function highlightCurrentAyah() {
+    const ayahBlocks = surahContainer.querySelectorAll(".ayah-block");
+    ayahBlocks.forEach(block => block.classList.remove("current-ayah"));
+    ayahBlocks.forEach(block => {
+        const idx = parseInt(block.getAttribute("data-ayah-index"));
+        if (idx === currentAyahIndex) {
+            block.classList.add("current-ayah");
+            if(autoScroll) {
+                block.scrollIntoView({behavior: 'smooth', block: 'center'});
+            }
+        }
+    });
+    lastAyahIndex = currentAyahIndex;
+}
+
+function setupSurahSearch() {
+    const ayahSearch = document.getElementById("ayahSearch");
+    const searchResults = document.getElementById("searchResults");
+
+    ayahSearch.addEventListener("input", () => {
+        const query = removeDiacritics(ayahSearch.value.toLowerCase().trim());
+        searchResults.innerHTML = "";
+        if(!query) {
+            searchResults.classList.add("d-none");
+            return;
+        }
+
+        const ayahBlocks = surahContainer.querySelectorAll(".ayah-block");
+        let resultsFound = 0;
+        ayahBlocks.forEach(block => {
+            const arabicTextRaw = block.querySelector(".ayah-text").textContent.toLowerCase();
+            const arabicText = removeDiacritics(arabicTextRaw);
+            if(arabicText.includes(query)) {
+                const ayahIndex = parseInt(block.getAttribute("data-ayah-index"));
+                if(!isNaN(ayahIndex)){
+                    const resultItem = document.createElement("p");
+                    resultItem.textContent = `الآية رقم ${ayahIndex+1}`;
+                    resultItem.addEventListener("click", () => {
+                        highlightSpecificAyah(ayahIndex);
+                    });
+                    searchResults.appendChild(resultItem);
+                    resultsFound++;
+                }
+            }
+        });
+
+        if(resultsFound > 0) {
+            searchResults.classList.remove("d-none");
+        } else {
+            searchResults.innerHTML = "<p>لم يتم العثور على نتائج</p>";
+            searchResults.classList.remove("d-none");
+        }
+    });
+}
+
+function highlightSpecificAyah(index) {
+    const ayahBlocks = surahContainer.querySelectorAll(".ayah-block");
+    ayahBlocks.forEach(block => block.classList.remove("current-ayah"));
+    ayahBlocks.forEach(block => {
+        const idx = parseInt(block.getAttribute("data-ayah-index"));
+        if (idx === index) {
+            block.classList.add("current-ayah");
+            block.scrollIntoView({behavior: 'smooth', block: 'center'});
+        }
+    });
+}
+
+function togglePlayPause() {
+    if(!currentAudioData) return;
+    if(!isPlaying) {
+        if (currentAyahIndex >= currentAudioData.ayahs.length) {
+            currentAyahIndex = 0;
+        }
+        if(audioPlayer.currentTime > 0 && audioPlayer.currentTime < audioPlayer.duration) {
+            audioPlayer.play();
+            isPlaying = true;
+            updatePlayButton();
+            return;
+        }
+        playCurrentAyah();
+        isPlaying = true;
+    } else {
+        audioPlayer.pause();
+        isPlaying = false;
+    }
+    updatePlayButton();
+}
+
+function updatePlayButton() {
+    if(!playButton) return;
+    if(isPlaying) {
+        playButton.classList.remove('btn-success');
+        playButton.classList.add('btn-danger');
+        playButton.innerHTML = '<i class="bi bi-pause-fill"></i> إيقاف السورة';
+    } else {
+        playButton.classList.remove('btn-danger');
+        playButton.classList.add('btn-success');
+        playButton.innerHTML = '<i class="bi bi-play-circle"></i> تشغيل السورة';
+    }
+    updateFloatingPlayButton();
+}
+
+function updateFloatingPlayButton() {
+    if(isPlaying) {
+        floatingPlayToggleBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+        floatingPlayToggleBtn.style.background = '#dc3545';
+    } else {
+        floatingPlayToggleBtn.innerHTML = '<i class="bi bi-play-circle"></i>';
+        floatingPlayToggleBtn.style.background = '#28a745';
+    }
+    if(currentAudioData) {
+        floatingPlayToggleBtn.style.display = 'block';
+    } else {
+        floatingPlayToggleBtn.style.display = 'none';
+    }
+}
+
+floatingPlayToggleBtn.addEventListener("click", () => {
+    togglePlayPause();
+});
+
+// زر الرجوع للأعلى
+scrollTopBtn.addEventListener("click", () => {
+    if (scrollState === 0) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        scrollState = 1;
+        scrollTopBtn.innerHTML = '<i class="bi bi-arrow-down"></i>';
+    } else if (scrollState === 1) {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        scrollState = 2;
+        scrollTopBtn.innerHTML = '<i class="bi bi-bookmark-check"></i>';
+    } else {
+        const ayahBlocks = surahContainer.querySelectorAll(".ayah-block");
+        ayahBlocks.forEach(block => block.classList.remove("current-ayah"));
+        ayahBlocks.forEach(block => {
+            const idx = parseInt(block.getAttribute("data-ayah-index"));
+            if (idx === lastAyahIndex) {
+                block.classList.add("current-ayah");
+                block.scrollIntoView({behavior: 'smooth', block: 'center'});
+            }
+        });
+        scrollState = 0;
+        scrollTopBtn.innerHTML = '<i class="bi bi-arrow-up"></i>';
+    }
+});
+</script>
+
 </body>
 </html>
