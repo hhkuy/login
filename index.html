@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>نظام تسجيل الدخول - مثال على Firebase</title>
+  <!-- بعض التنسيقات الجمالية -->
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Tajawal", sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #ff9e2c, #ffd476);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      background-color: #ffffffbb;
+      width: 350px;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    label {
+      display: block;
+      text-align: left;
+      margin: 10px 0 5px 0;
+      color: #555;
+      font-weight: bold;
+    }
+
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      background-color: #f90;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      color: #fff;
+    }
+
+    button:hover {
+      background-color: #ff7200;
+    }
+
+    #status, #error {
+      margin-top: 10px;
+      min-height: 20px;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    #status {
+      color: green;
+    }
+
+    #error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>نظام الدخول - Firebase</h1>
+
+    <label for="email">البريد الإلكتروني:</label>
+    <input type="email" id="email" placeholder="أدخل بريدك الإلكتروني">
+
+    <label for="password">كلمة المرور:</label>
+    <input type="password" id="password" placeholder="أدخل كلمة المرور">
+
+    <button id="signupBtn">إنشاء حساب</button>
+    <button id="loginBtn">تسجيل الدخول</button>
+    <button id="logoutBtn">تسجيل الخروج</button>
+
+    <div id="status"></div>
+    <div id="error"></div>
+  </div>
+
+  <!-- استيراد Firebase من CDN (روابط الإصدار 9 فما فوق) -->
+  <script type="module">
+    import { 
+      initializeApp 
+    } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+
+    import {
+      getDatabase,
+      ref,
+      set,
+      get,
+      update
+    } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+    /**** 1) معلومات مشروع Firebase الخاصة بك ****/
+    const firebaseConfig = {
+      apiKey: "AIzaSyAAp1KkuFVqB5D8v_m4dJ4snEbCTjv7R8U",
+      authDomain: "sums-site.firebaseapp.com",
+      databaseURL: "https://sums-site-default-rtdb.firebaseio.com",
+      projectId: "sums-site",
+      storageBucket: "sums-site.firebasestorage.app",
+      messagingSenderId: "154631517392",
+      appId: "1:154631517392:web:185e081d1ee6e722451ad5"
+    };
+
+    /**** 2) تهيئة Firebase ****/
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    /**** 3) المراجع إلى عناصر الصفحة ****/
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const signupBtn = document.getElementById("signupBtn");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    const statusDiv = document.getElementById("status");
+    const errorDiv = document.getElementById("error");
+
+    /**** 4) دوال مساعدة لعرض الرسائل ****/
+    function showStatus(message) {
+      statusDiv.textContent = message;
+    }
+
+    function showError(message) {
+      errorDiv.textContent = message;
+    }
+
+    /**** 5) دالة لإنشاء حساب جديد ****/
+    async function signUp() {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      // تفريغ رسائل الحالة أو الخطأ
+      showStatus("");
+      showError("");
+
+      if (!email || !password) {
+        showError("يرجى إدخال البريد الإلكتروني وكلمة المرور.");
+        return;
+      }
+
+      try {
+        // إنشاء حساب جديد في Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // عند الإنشاء الناجح، قم بحفظ حالة "loggedIn" في Realtime Database على false
+        const userRef = ref(db, `users/${user.uid}`);
+        await set(userRef, {
+          loggedIn: false,
+          email: user.email
+        });
+
+        showStatus("تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.");
+      } catch (error) {
+        showError(`فشل إنشاء الحساب: ${error.message}`);
+      }
+    }
+
+    /**** 6) دالة لتسجيل الدخول مع التحقق من عدم تسجيل الدخول على جهاز آخر ****/
+    async function logIn() {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      // تفريغ رسائل الحالة أو الخطأ
+      showStatus("");
+      showError("");
+
+      if (!email || !password) {
+        showError("يرجى إدخال البريد الإلكتروني وكلمة المرور.");
+        return;
+      }
+
+      try {
+        // تسجيل الدخول عبر Firebase Auth
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        const userRef = ref(db, `users/${user.uid}`);
+
+        // جلب بيانات المستخدم من Realtime Database
+        const snapshot = await get(userRef);
+
+        if (snapshot.exists()) {
+          const userData = snapshot.val();
+
+          // إذا كان المستخدم مسجلاً للدخول (loggedIn = true) بالفعل في قاعدة البيانات،
+          // فهذا يعني أنه يحاول تسجيل الدخول من جهاز آخر
+          if (userData.loggedIn === true) {
+            // تسجيل الخروج مباشرة
+            await signOut(auth);
+            showError("لا يمكنك تسجيل الدخول من جهاز آخر ما لم تقم بتسجيل الخروج أولاً.");
+          } else {
+            // إذا لم يكن مسجلاً للدخول، نحدّث الحالة إلى true
+            await update(userRef, { loggedIn: true });
+            showStatus("تم تسجيل الدخول بنجاح!");
+          }
+        } else {
+          // في حال لم توجد بيانات للمستخدم
+          showError("حدث خطأ في بيانات المستخدم. حاول مرة أخرى.");
+        }
+      } catch (error) {
+        showError(`فشل تسجيل الدخول: ${error.message}`);
+      }
+    }
+
+    /**** 7) دالة لتسجيل الخروج ****/
+    async function logOut() {
+      showStatus("");
+      showError("");
+
+      if (auth.currentUser) {
+        const user = auth.currentUser;
+        const userRef = ref(db, `users/${user.uid}`);
+
+        try {
+          // نحدّث حالة المستخدم في قاعدة البيانات إلى false
+          await update(userRef, { loggedIn: false });
+
+          // ثم تسجيل الخروج من Firebase Auth
+          await signOut(auth);
+          showStatus("تم تسجيل الخروج بنجاح!");
+        } catch (error) {
+          showError(`فشل تسجيل الخروج: ${error.message}`);
+        }
+      } else {
+        showError("لا يوجد مستخدم مسجل الدخول حالياً.");
+      }
+    }
+
+    /**** 8) الاستماع لتغير حالة المصادقة (Auth State) ****/
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // يوجد مستخدم مسجل دخول
+        showStatus(`مستخدم حالياً: ${user.email}`);
+      } else {
+        // لا يوجد مستخدم مسجل الدخول
+        showStatus("لا يوجد مستخدم مسجل الدخول حالياً.");
+      }
+    });
+
+    /**** 9) ربط الأزرار بالدوال ****/
+    signupBtn.addEventListener("click", signUp);
+    loginBtn.addEventListener("click", logIn);
+    logoutBtn.addEventListener("click", logOut);
+  </script>
+</body>
+</html>
